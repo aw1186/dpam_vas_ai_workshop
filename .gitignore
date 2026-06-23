@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases (regenerate with migrate + seed)
+*.sqlite3
+*.db
+
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Django
+*.log
+local_settings.py
+media/
+staticfiles/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

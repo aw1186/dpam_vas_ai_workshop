@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Reporting Dashboard</h1><p>Overview of report status, validations and control health.</p></div>
+  <a href="{% url 'reports' %}"><button class="btn btn-primary">Open Report Queue →</button></a>
+</div>
+
+<div class="metrics">
+  {% for c in cards %}
+  <div class="metric">
+    <div class="bar {{ c.bar }}"></div>
+    <div class="label">{{ c.label }}</div>
+    <div class="value">{{ c.value }}</div>
+    <div class="delta">
+      {% if c.bar == 'amber' %}<span style="color:var(--amber)">{{ c.delta }}</span>
+      {% elif c.bar == 'green' %}<span style="color:var(--green)">{{ c.delta }}</span>
+      {% elif c.bar == 'red' %}<span style="color:var(--red)">{{ c.delta }}</span>
+      {% else %}&nbsp;{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid-2">
+  <div class="section-card">
+    <h3>Validation progress by team</h3>
+    {% for t in team_progress %}
+    <div style="margin-bottom:12px">
+      <div class="row-inline" style="justify-content:space-between"><strong>{{ t.team }}</strong><span class="muted">{{ t.done }}/{{ t.total }} approved</span></div>
+      <div class="progress" style="margin-top:6px"><span style="width:{{ t.pct }}%"></span></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-card">
+    <h3>Control consistency (latest run)</h3>
+    {% for a in control_summary %}
+    <div class="check-row">
+      <div class="c-name">
+        <div style="font-weight:600">{{ a.name }}</div>
+        <div class="progress" style="margin-top:6px;height:7px"><span style="width:{{ a.pct }}%;background:var(--green)"></span></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <span class="pill green">{{ a.pass }}</span>
+        <span class="pill amber">{{ a.warn }}</span>
+        <span class="pill red">{{ a.fail }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

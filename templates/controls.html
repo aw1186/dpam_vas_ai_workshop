@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Controls · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Checks, Controls &amp; Consistency</h1><p>Aggregate view of automated control results across all reports.</p></div>
+</div>
+
+<div class="metrics">
+  {% for c in cards %}
+  <div class="metric"><div class="bar {{ c.bar }}"></div><div class="label">{{ c.label }}</div><div class="value">{{ c.value }}</div></div>
+  {% endfor %}
+</div>
+
+<div class="section-card">
+  <h3>Control catalogue</h3>
+  {% for d in catalogue %}
+  <div class="check-row">
+    <div class="c-name"><div style="font-weight:600">{{ d.name }}</div><div class="muted">{{ d.desc }}</div></div>
+    <div class="row-inline">
+      {% for fl in d.flagged %}
+        <span class="pill {% if fl.status == 'fail' %}red{% else %}amber{% endif %}" title="{{ fl.fund }}">{{ fl.rid }}</span>
+      {% empty %}
+        <span class="pill green">All clear</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

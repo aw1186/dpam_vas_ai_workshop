@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Chat · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Ad-hoc Report Chat</h1><p>Request ad-hoc reports and clarifications with controllers &amp; teams.</p></div>
+</div>
+
+<div class="grid-2" style="grid-template-columns: 300px 1fr">
+  <div>
+    <div class="section-card">
+      <h3>Conversations</h3>
+      <div class="chat-list">
+        {% for c in chats %}
+        <a href="{% url 'chat_detail' c.id %}">
+          <div class="ch {% if current and current.id == c.id %}active{% endif %}">
+            <div class="ci">{{ c.name|slice:":2"|upper }}</div>
+            <div>
+              <div class="nm">{{ c.name }}</div>
+              <div class="pv">{% with last=c.messages.last %}{% if last %}{{ last.text }}{% endif %}{% endwith %}</div>
+            </div>
+          </div>
+        </a>
+        {% empty %}
+        <div class="muted">No conversations yet.</div>
+        {% endfor %}
+      </div>
+      <hr class="sep" />
+      <form method="post" action="{% url 'chat_create' %}">
+        {% csrf_token %}
+        <div class="field"><label>New request — short title</label>
+          <input type="text" name="name" placeholder="e.g. Aurora attribution" required />
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px">+ Create request</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-card">
+      {% if current %}
+      <div class="row-inline" style="justify-content:space-between">
+        <div class="row-inline">
+          <span class="ci">{{ current.name|slice:":2"|upper }}</span>
+          <div><div style="font-weight:600">{{ current.name }}</div><div class="muted">{{ current.sub }}</div></div>
+        </div>
+        <form method="post" action="{% url 'chat_delete' current.id %}" onsubmit="return confirm('Delete this conversation?')">
+          {% csrf_token %}<button class="btn btn-ghost btn-sm">Delete</button>
+        </form>
+      </div>
+      <div class="msgs" id="msgs" style="margin-top:12px">
+        {% for m in current.messages.all %}
+        <div class="msg {% if m.is_me %}me{% else %}them{% endif %}">
+          <div class="who">{{ m.who }}</div>
+          <div>{{ m.text }}</div>
+          <div class="t">{{ m.created_at }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <form method="post" action="{% url 'chat_send' current.id %}" class="row-inline" style="margin-top:12px">
+        {% csrf_token %}
+        <input type="text" name="text" placeholder="Type a message…" style="flex:1" required />
+        <button class="btn btn-primary">Send</button>
+      </form>
+      {% else %}
+      <div class="empty">Select or create a conversation to start chatting.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  var box = document.getElementById('msgs');
+  if (box) box.scrollTop = box.scrollHeight;
+</script>
+{% endblock %}

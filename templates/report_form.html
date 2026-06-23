@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'create' %}New report{% else %}Edit {{ report.id }}{% endif %} · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if mode == 'create' %}Create new report{% else %}Edit {{ report.id }}{% endif %}</h1>
+    <p>{% if mode == 'create' %}Add a report; default controls and team validations are created automatically.{% else %}Update report metadata.{% endif %}</p>
+  </div>
+  <a href="{% url 'reports' %}"><button class="btn btn-ghost">← Back</button></a>
+</div>
+
+<div class="section-card" style="max-width:560px">
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field" style="margin-bottom:14px">
+      <label>{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<div class="muted" style="color:var(--red)">{{ field.errors|striptags }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="row-inline">
+      <button class="btn btn-primary">{% if mode == 'create' %}Create report{% else %}Save changes{% endif %}</button>
+      <a href="{% if mode == 'edit' %}{% url 'report_detail' report.id %}{% else %}{% url 'reports' %}{% endif %}"><button type="button" class="btn btn-ghost">Cancel</button></a>
+    </div>
+  </form>
+</div>
+{% endblock %}

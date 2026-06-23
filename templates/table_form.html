@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ mode|title }} row · {{ table }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if mode == 'create' %}Insert into{% else %}Edit row in{% endif %} {{ table }}</h1>
+    <p>Direct row editing. Foreign-key fields take the parent row's id.</p></div>
+  <a href="{% url 'database_table' table %}"><button class="btn btn-ghost">← Back</button></a>
+</div>
+
+<div class="section-card" style="max-width:560px">
+  <form method="post">
+    {% csrf_token %}
+    {% for f in field_defs %}
+    <div class="field" style="margin-bottom:14px">
+      <label>{{ f.name }}{% if f.is_fk %} (id){% endif %}</label>
+      {% if f.is_bool %}
+        <select name="{{ f.name }}">
+          <option value="true" {% if f.value %}selected{% endif %}>true</option>
+          <option value="false" {% if not f.value %}selected{% endif %}>false</option>
+        </select>
+      {% else %}
+        <input type="text" name="{{ f.name }}" value="{{ f.value }}" />
+      {% endif %}
+    </div>
+    {% endfor %}
+    <div class="row-inline">
+      <button class="btn btn-primary">{% if mode == 'create' %}Insert{% else %}Save{% endif %}</button>
+      <a href="{% url 'database_table' table %}"><button type="button" class="btn btn-ghost">Cancel</button></a>
+    </div>
+  </form>
+</div>
+{% endblock %}

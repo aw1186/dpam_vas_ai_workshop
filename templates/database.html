@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Database · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Database</h1><p>Direct CRUD over every table in the SQLite database.</p></div>
+  <form method="post" action="{% url 'database_reset' %}" onsubmit="return confirm('Drop all data and reseed?')">
+    {% csrf_token %}<button class="btn btn-red">Reset demo data</button>
+  </form>
+</div>
+
+<div class="toolbar">
+  {% for t in tables %}
+    <a href="{% url 'database_table' t %}">
+      <button type="button" class="btn {% if t == table %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">{{ t }}</button>
+    </a>
+  {% endfor %}
+  <div style="flex:1"></div>
+  <a href="{% url 'database_create' table %}"><button class="btn btn-green btn-sm">+ Insert row</button></a>
+</div>
+
+<div class="section-card">
+  <h3>Table: {{ table }} <span class="muted">({{ rows|length }} rows)</span></h3>
+  <div class="table-wrap">
+    <table class="db-table">
+      <thead>
+        <tr>
+          {% for f in fields %}<th>{{ f }}</th>{% endfor %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for v in row.values %}<td title="{{ v }}">{{ v }}</td>{% endfor %}
+          <td class="row-inline">
+            <a href="{% url 'database_edit' table row.pk %}"><button class="btn btn-ghost btn-sm">Edit</button></a>
+            <form method="post" action="{% url 'database_delete' table row.pk %}" onsubmit="return confirm('Delete this row?')">
+              {% csrf_token %}<button class="btn btn-red btn-sm">Del</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ fields|length|add:1 }}"><div class="empty">No rows in this table.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

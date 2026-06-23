@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ report.fund }} · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ report.fund }}</h1>
+    <p>{{ report.id }} · {{ report.type }} · {{ report.lang_name }} · {{ report.period }} · ISIN {{ report.isin }}</p>
+  </div>
+  <div class="row-inline">
+    <a href="{% url 'report_edit' report.id %}"><button class="btn btn-ghost">Edit</button></a>
+    <form method="post" action="{% url 'report_delete' report.id %}" onsubmit="return confirm('Delete {{ report.id }}?')">
+      {% csrf_token %}
+      <button class="btn btn-red">Delete</button>
+    </form>
+    <a href="{% url 'reports' %}"><button class="btn btn-ghost">← Back</button></a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div>
+    <div class="section-card">
+      <h3>Document preview</h3>
+      <div class="doc-preview">
+        <h4>{{ report.fund }}</h4>
+        <div class="muted">{{ report.type }} — Reporting period {{ report.period }} — Language: {{ report.lang_name }} — ISIN {{ report.isin }}</div>
+        <p>Net Asset Value summary and key figures for the period. The following figures are extracted from the official books and records of the fund.</p>
+        <table>
+          <tr><th>Metric</th><th>Value</th><th>Δ vs prior</th></tr>
+          <tr><td>NAV per share</td><td>€ 142.38</td><td>+1.27%</td></tr>
+          <tr><td>Total net assets</td><td>€ 1,284.6m</td><td>+0.84%</td></tr>
+          <tr><td>YTD performance</td><td>+6.41%</td><td>—</td></tr>
+          <tr><td>Number of holdings</td><td>187</td><td>+3</td></tr>
+        </table>
+        <p class="muted" style="margin-top:10px">Preview is illustrative sample content for demonstration purposes.</p>
+      </div>
+      <form method="post" action="{% url 'report_set_status' report.id %}" class="row-inline" style="margin-top:12px">
+        {% csrf_token %}
+        <span>Overall status:</span>
+        {% if report.status == 'Validated' %}<span class="pill green"><span class="dot"></span>{{ report.status }}</span>
+        {% elif report.status == 'In Review' %}<span class="pill blue"><span class="dot"></span>{{ report.status }}</span>
+        {% elif report.status == 'Rejected' %}<span class="pill red"><span class="dot"></span>{{ report.status }}</span>
+        {% else %}<span class="pill amber"><span class="dot"></span>{{ report.status }}</span>{% endif %}
+        <button name="status" value="In Review" class="btn btn-ghost btn-sm">Mark In Review</button>
+        <button name="status" value="Validated" class="btn btn-green btn-sm">Mark Validated</button>
+        <button name="status" value="Rejected" class="btn btn-red btn-sm">Reject</button>
+      </form>
+    </div>
+
+    <div class="section-card">
+      <h3>Checks &amp; controls</h3>
+      {% for c in report.controls.all %}
+      <div class="check-row">
+        <div class="c-name"><div style="font-weight:600">{{ c.name }}</div><div class="muted">{{ c.descr }}</div></div>
+        <span class="pill {% if c.status == 'pass' %}green{% elif c.status == 'warn' %}amber{% else %}red{% endif %}">{{ c.status }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <div class="section-card">
+      <h3>Validation — VAS &amp; teams</h3>
+      {% for v in teams %}
+      <div class="check-row">
+        <div>
+          <div style="font-weight:600">{{ v.team }}</div>
+          <div class="muted">{% if v.signed_by %}{{ v.signed_by }} · {{ v.signed_at }}{% else %}Awaiting sign-off{% endif %}</div>
+        </div>
+        <div class="row-inline">
+          {% if v.state == 'approved' %}<span class="pill green">Approved</span>
+          {% elif v.state == 'rejected' %}<span class="pill red">Rejected</span>
+          {% else %}<span class="pill grey">Pending</span>{% endif %}
+          <form method="post" action="{% url 'validation_set' report.id v.id %}" style="display:inline">
+            {% csrf_token %}
+            <button name="state" value="approved" class="btn btn-green btn-sm">Approve</button>
+            <button name="state" value="rejected" class="btn btn-red btn-sm">Reject</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="section-card">
+      <h3>Notes &amp; disclaimers</h3>
+      {% for n in report.notes.all %}
+      <div class="note-item {% if n.type == 'disclaimer' %}disclaimer{% endif %}">
+        <div class="note-head">
+          <span class="pill {% if n.type == 'disclaimer' %}amber{% else %}blue{% endif %}">{% if n.type == 'disclaimer' %}Disclaimer{% else %}Note{% endif %}</span>
+          <strong>{{ n.author }}</strong> · {{ n.created_at }}
+          <form method="post" action="{% url 'note_delete' report.id n.id %}" style="display:inline;float:right">
+            {% csrf_token %}<button class="btn btn-ghost btn-sm">Delete</button>
+          </form>
+        </div>
+        <div>{{ n.text }}</div>
+      </div>
+      {% empty %}
+      <div class="muted">No notes or disclaimers yet.</div>
+      {% endfor %}
+      <hr class="sep" />
+      <form method="post" action="{% url 'note_add' report.id %}">
+        {% csrf_token %}
+        <textarea name="text" placeholder="Add a note or disclaimer…" required></textarea>
+        <div class="row-inline" style="margin-top:10px">
+          <select name="type">
+            <option value="note">Internal note</option>
+            <option value="disclaimer">Disclaimer</option>
+          </select>
+          <button class="btn btn-primary btn-sm">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
