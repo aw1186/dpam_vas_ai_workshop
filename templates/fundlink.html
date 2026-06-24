@@ -40,6 +40,15 @@
     </div>
   </form>
 
+  {% if nl_resolution %}
+    <div class="flash" style="margin-top:14px;background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe;">
+      Interpreted <strong>"{{ nl_resolution.mention }}"</strong> as
+      <strong>{{ nl_resolution.name }}</strong>
+      {% if nl_resolution.isin %}(ISIN {{ nl_resolution.isin }}){% endif %}
+      — best {{ nl_resolution.kind }} match, {{ nl_resolution.score }}% confidence.
+    </div>
+  {% endif %}
+
   {% if nl_sql %}
     <div style="margin-top:14px;">
       <div class="muted" style="font-size:12px;margin-bottom:4px;">Generated SQL</div>
@@ -49,6 +58,34 @@
 
   {% if nl_error %}
     <div class="flash error" style="margin-top:14px;">{{ nl_error }}</div>
+  {% endif %}
+
+  {% if nl_chart %}
+  <div class="section-card" style="margin-top:14px;background:#fff;">
+    <h3>Visualization</h3>
+    <div style="position:relative;height:340px;">
+      <canvas id="nlChart"></canvas>
+    </div>
+    {% if chart_reason %}<p class="muted" style="font-size:12px;margin-top:8px;">{{ chart_reason }}</p>{% endif %}
+  </div>
+  {{ nl_chart|json_script:"nlChartData" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function () {
+      var el = document.getElementById('nlChartData');
+      var canvas = document.getElementById('nlChart');
+      if (!el || !canvas) return;
+      function render() {
+        if (!window.Chart) return;
+        try {
+          var cfg = JSON.parse(el.textContent);
+          new Chart(canvas.getContext('2d'), cfg);
+        } catch (e) { console.error('Chart render failed', e); }
+      }
+      if (window.Chart) { render(); }
+      else { window.addEventListener('load', render); }
+    })();
+  </script>
   {% endif %}
 
   {% if nl_cols %}

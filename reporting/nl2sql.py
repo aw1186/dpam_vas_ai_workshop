@@ -144,6 +144,155 @@ def _strip_sql(text: str) -> str:
     return text.strip().rstrip(";").strip()
 
 
+def _extract_json(text: str):
+    """Best-effort parse of a JSON object out of an LLM reply."""
+    import json
+
+    text = (text or "").strip()
+    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
+    if fence:
+        text = fence.group(1).strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    brace = re.search(r"\{.*\}", text, re.DOTALL)
+    if brace:
+        try:
+            return json.loads(brace.group(0))
+        except Exception:
+            return None
+    return None
+
+
+def extract_fund_mention(question: str) -> str:
+    """Use the LLM to pull a fund / sub-fund / share-class mention from the text.
+
+    Returns the mentioned name (possibly partial) or "" if none.
+    """
+    cfg = _llm_config()
+    sys = (
+        "Extract the fund, sub-fund or share-class the user refers to, if any. "
+        'Return ONLY JSON: {"fund": "<text or empty string>"}. '
+        "Copy the user's wording (do not invent a full official name). "
+        "If they gave an ISIN, put the ISIN. If no fund is referenced, use \"\"."
+    )
+    try:
+        resp = _client().chat.completions.create(
+            model=cfg["model"],
+            temperature=0,
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": question},
+            ],
+        )
+        data = _extract_json(resp.choices[0].message.content or "")
+        if isinstance(data, dict):
+            return (data.get("fund") or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _fund_hint_text(match: dict) -> str:
+    """Build a context hint for the SQL generator from a resolver match."""
+    parts = [
+        "FUND RESOLUTION (use these EXACT values in filters; do not invent names):",
+        f"- Sub-fund name (for SUBFUND_LONGNAME / D_SHC_DSBF_NM): '{match.get('subfund') or match.get('name')}'",
+    ]
+    if match.get("isin"):
+        parts.append(f"- A matching share-class ISIN (for D_SHC_SHARECLASS_ISIN): '{match['isin']}'")
+    parts.append(
+        "If the question is about exposure/holdings, filter positions by the sub-fund name. "
+        "If it is about share-class attributes, filter by the ISIN."
+    )
+    return "\n".join(parts)
+
+
+def generate_sql(question: str, fund_hint: str | None = None) -> str:
+    """Translate a natural-language question into an Oracle SELECT."""
+    cfg = _llm_config()
+    messages = [{"role": "system", "content": SCHEMA_PROMPT}]
+    for q, a in FEWSHOT:
+        messages.append({"role": "user", "content": q})
+        messages.append({"role": "assistant", "content": a})
+    if fund_hint:
+        messages.append({"role": "user", "content": fund_hint})
+        messages.append({"role": "assistant", "content": "Understood. I will use those exact values."})
+    messages.append({"role": "user", "content": question})
+
+    resp = _client().chat.completions.create(
+        model=cfg["model"],
+        temperature=0,
+        messages=messages,
+    )
+    return _strip_sql(resp.choices[0].message.content or "")
+
+
+def ask(question: str):
+    """Agentic pipeline: resolve fund -> NL->SQL -> run -> advise/build chart.
+
+    Returns a dict: {sql, columns, rows, error, resolution, chart, chart_reason}.
+    ``sql`` is always populated so the UI can show what was generated.
+    """
+    out = {
+        "sql": "", "columns": None, "rows": None, "error": None,
+        "resolution": None, "chart": None, "chart_reason": None,
+    }
+
+    # 1) Fuzzy fund-name resolution (best-effort; never blocks the query).
+    fund_hint = None
+    try:
+        mention = extract_fund_mention(question)
+        if mention:
+            from . import resolver
+            match = resolver.best(mention)
+            if match:
+                out["resolution"] = {
+                    "mention": mention,
+                    "name": match["name"],
+                    "isin": match["isin"],
+                    "subfund": match.get("subfund"),
+                    "kind": match["kind"],
+                    "score": round(match["score"], 1),
+                }
+                fund_hint = _fund_hint_text(match)
+    except Exception:
+        pass
+
+    # 2) Natural language -> SQL.
+    try:
+        out["sql"] = generate_sql(question, fund_hint)
+    except Exception as exc:
+        out["error"] = f"LLM error: {exc}"
+        return out
+
+    if not out["sql"]:
+        out["error"] = "The model did not return a SQL statement."
+        return out
+
+    # 3) Execute (read-only, guarded).
+    try:
+        columns, raw_rows = fundlink.run_query(out["sql"])
+        out["columns"] = columns
+        out["rows"] = [[("" if v is None else v) for v in r] for r in raw_rows]
+    except Exception as exc:
+        out["error"] = f"SQL error: {exc}"
+        return out
+
+    # 4) Visualization agents (advisor decides, builder renders config).
+    try:
+        from . import viz_agent
+        spec = viz_agent.advise(question, out["columns"], out["rows"])
+        out["chart"] = viz_agent.build_chart(spec, out["columns"], out["rows"])
+        out["chart_reason"] = (spec or {}).get("reason")
+    except Exception:
+        pass
+
+    return out
+
+
+
 # Few-shot examples teach the model the exact patterns (esp. exposure).
 FEWSHOT = [
     (
@@ -230,45 +379,3 @@ FEWSHOT = [
     ),
 ]
 
-
-def generate_sql(question: str) -> str:
-    """Translate a natural-language question into an Oracle SELECT."""
-    cfg = _llm_config()
-    messages = [{"role": "system", "content": SCHEMA_PROMPT}]
-    for q, a in FEWSHOT:
-        messages.append({"role": "user", "content": q})
-        messages.append({"role": "assistant", "content": a})
-    messages.append({"role": "user", "content": question})
-
-    resp = _client().chat.completions.create(
-        model=cfg["model"],
-        temperature=0,
-        messages=messages,
-    )
-    return _strip_sql(resp.choices[0].message.content or "")
-
-
-def ask(question: str):
-    """Full pipeline: NL -> SQL -> result.
-
-    Returns a dict: {sql, columns, rows, error}. ``sql`` is always populated so
-    the UI can show what was generated even if execution fails.
-    """
-    out = {"sql": "", "columns": None, "rows": None, "error": None}
-    try:
-        out["sql"] = generate_sql(question)
-    except Exception as exc:
-        out["error"] = f"LLM error: {exc}"
-        return out
-
-    if not out["sql"]:
-        out["error"] = "The model did not return a SQL statement."
-        return out
-
-    try:
-        columns, raw_rows = fundlink.run_query(out["sql"])
-        out["columns"] = columns
-        out["rows"] = [[("" if v is None else v) for v in r] for r in raw_rows]
-    except Exception as exc:
-        out["error"] = f"SQL error: {exc}"
-    return out

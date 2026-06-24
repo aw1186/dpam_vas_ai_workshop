@@ -477,6 +477,7 @@ def fundlink_view(request):
     sparql, sparql_cols, sparql_rows, sparql_error = "", None, None, None
     rule_results = None
     question, nl_sql, nl_cols, nl_rows, nl_error = "", "", None, None, None
+    nl_resolution, nl_chart, nl_chart_reason = None, None, None
 
     if request.method == "POST":
         action = request.POST.get("action", "sql")
@@ -499,6 +500,9 @@ def fundlink_view(request):
                 nl_cols = result["columns"]
                 nl_rows = result["rows"]
                 nl_error = result["error"]
+                nl_resolution = result.get("resolution")
+                nl_chart = result.get("chart")
+                nl_chart_reason = result.get("chart_reason")
 
         elif action == "sparql":
             sparql = request.POST.get("sparql", "").strip()
@@ -534,6 +538,9 @@ def fundlink_view(request):
         "nl_cols": nl_cols,
         "nl_rows": nl_rows,
         "nl_error": nl_error,
+        "nl_resolution": nl_resolution,
+        "nl_chart": nl_chart,
+        "chart_reason": nl_chart_reason,
         "sparql": sparql,
         "sparql_cols": sparql_cols,
         "sparql_rows": sparql_rows,

@@ -1,0 +1,944 @@
+# ══════════════════════════════════════════════════════════════
+# Fund Reporting Hub — Rétrodocumentation EDGY (instanciation)
+# Instance graph conforming to OntolEDGY 1.0-draft
+# (https://schema.bra0.org/cross-domain/edgy#)
+#
+# Subject of documentation:
+#   The "Fund Reporting Hub" Django application prototyped during the
+#   DPAM / Indosuez AI Workshop (workspace AIWORKSHOP), comprising:
+#     - a regulatory fund-report validation platform (Reports / Controls /
+#       Chat / Database pages), backed by SQLite;
+#     - a FundLink Oracle data-warehouse integration (raw SQL, NL2SQL,
+#       RDF/SPARQL bridge, RM data-quality rules);
+#     - an agentic Natural-Language-to-SQL pipeline with fuzzy fund-name
+#       resolution (rapidfuzz) and a two-agent auto-visualization system
+#       (Chart.js), driven by an internal OpenAI-compatible LLM gateway
+#       (gpt-4.1-mini).
+#
+# Method: every concrete artefact, role, behaviour and goal of the project is
+# instantiated against an EDGY element class, and the relationships between
+# them are asserted using the EDGY object properties as systematically and
+# exhaustively as possible.
+# ══════════════════════════════════════════════════════════════
+
+@prefix edgy: <https://schema.bra0.org/cross-domain/edgy#> .
+@prefix frh:  <https://schema.bra0.org/instance/fund-reporting-hub#> .
+@prefix gist: <https://w3id.org/semanticarts/ontology/gistCore#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+@base <https://schema.bra0.org/instance/fund-reporting-hub#> .
+
+#################################################################
+#    DATASET DECLARATION
+#################################################################
+
+frh:FundReportingHubKnowledgeGraph rdf:type owl:Ontology ;
+    dcterms:title "Fund Reporting Hub — EDGY instantiation"@en ;
+    dcterms:description "Retro-documentation of the DPAM/Indosuez Fund Reporting Hub prototype as an instance graph of the OntolEDGY 1.0-draft ontology."@en ;
+    dcterms:created "2026-06-24" ;
+    owl:imports <https://schema.bra0.org/cross-domain/edgy#> ;
+    owl:versionInfo "1.0" .
+
+#################################################################
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  IDENTITY FACET — Purpose · Story · Content               │
+#  └──────────────────────────────────────────────────────────┘
+#################################################################
+
+### --- Purpose (Identity / Outcome) ----------------------------------------
+
+frh:AccurateValidatedReporting rdf:type edgy:Purpose ;
+    rdfs:label "Produce accurate, validated fund reports"@en ;
+    rdfs:comment "North-star goal of the platform: deliver regulatory fund reports whose figures are reconciled and signed off by every accountable team before release."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:hasBusinessValue 5 ;
+    edgy:hasPriority 1 ;
+    edgy:hasTag "reporting" ;
+    edgy:groundedInBFO bfo:BFO_0000017 .   # realizable entity / disposition
+
+frh:RegulatoryCompliance rdf:type edgy:Purpose ;
+    rdfs:label "Stay compliant with regulatory disclosure obligations"@en ;
+    rdfs:comment "Ensure mandatory disclosures (SFDR/ESG article, disclaimers, prior-period continuity) are present and correct, as captured by the Controls catalogue."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:hasBusinessValue 5 ;
+    edgy:hasPriority 1 ;
+    edgy:hasTag "compliance" .
+
+frh:DataQualityAssurance rdf:type edgy:Purpose ;
+    rdfs:label "Guarantee fund master-data quality"@en ;
+    rdfs:comment "Detect missing or inconsistent share-class attributes (name, currency, ESG article, asset class) in FundLink before they pollute downstream reports."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:hasBusinessValue 4 ;
+    edgy:hasPriority 2 ;
+    edgy:hasTag "data-quality" .
+
+frh:DataDemocratization rdf:type edgy:Purpose ;
+    rdfs:label "Make fund data accessible without SQL"@en ;
+    rdfs:comment "Let any business user interrogate the FundLink warehouse in plain language, see the generated SQL for transparency, and get an automatic visual when suitable."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:hasBusinessValue 5 ;
+    edgy:hasPriority 1 ;
+    edgy:hasTag "self-service" .
+
+### --- Story (Identity / Activity) ------------------------------------------
+
+frh:ReportingHubStory rdf:type edgy:Story ;
+    rdfs:label "The Fund Reporting Hub story"@en ;
+    rdfs:comment "Narrative: a single navy/slate web hub where VAS, Fund Accounting, Risk and Compliance collaborate to take a fund report from Pending to Validated, with full audit of controls and validations."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:contextualizes frh:AccurateValidatedReporting ;
+    edgy:contextualizes frh:RegulatoryCompliance .
+
+frh:SelfServiceDataStory rdf:type edgy:Story ;
+    rdfs:label "Ask-your-data story"@en ;
+    rdfs:comment "Narrative: an analyst types 'country exposure of the newgems sustainable fund', the assistant fuzzily resolves the fund, writes the Oracle SQL, runs it and draws the right chart — no SQL or exact name required."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:contextualizes frh:DataDemocratization .
+
+### --- Content (Identity / Object) ------------------------------------------
+
+frh:PRD_Reporting rdf:type edgy:Content ;
+    rdfs:label "PRD — MyIndosuez PE Reporting"@en ;
+    rdfs:comment "Product requirements document describing the reporting platform expectations (AI_WorkShop0626/PRD_MyIndosuez_PE_Reporting.md)."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:conveys frh:ReportingHubStory ;
+    edgy:expresses frh:AccurateValidatedReporting ;
+    edgy:hasTag "specification" .
+
+frh:PRD_CRM rdf:type edgy:Content ;
+    rdfs:label "PRD — Indosuez PE CRM Platform"@en ;
+    rdfs:comment "Companion product requirements document for the private-equity CRM platform (AI_WorkShop0626/PRD_Indosuez_PE_CRM_Platform.md)."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:expresses frh:RegulatoryCompliance ;
+    edgy:hasTag "specification" .
+
+frh:ProjectReadme rdf:type edgy:Content ;
+    rdfs:label "README — Fund Reporting Hub (Django edition)"@en ;
+    rdfs:comment "Developer-facing documentation of the Django rebuild: features, data model, run instructions (django-reporting-hub/README.md)."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:conveys frh:SelfServiceDataStory ;
+    edgy:hasTag "documentation" .
+
+frh:GeneratedFundReport rdf:type edgy:Content ;
+    rdfs:label "Fund report content"@en ;
+    rdfs:comment "The information communicated by a fund report instance (Report row: fund, isin, type, period, language, status) together with its notes and disclaimers."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:expresses frh:AccurateValidatedReporting .
+
+frh:Disclaimer rdf:type edgy:Content ;
+    rdfs:label "Regulatory disclaimer"@en ;
+    rdfs:comment "Mandatory disclaimer note attached to a report (Note.type='disclaimer'), required for disclosure completeness control."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:expresses frh:RegulatoryCompliance ;
+    edgy:conveys frh:ReportingHubStory .
+
+frh:InternalNote rdf:type edgy:Content ;
+    rdfs:label "Internal note"@en ;
+    rdfs:comment "Free-text internal annotation on a report (Note.type='note')."@en ;
+    edgy:belongsToFacet edgy:identityFacet ;
+    edgy:viewedThrough edgy:identityFacet .
+
+#################################################################
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  ARCHITECTURE FACET — Capability · Process · Asset         │
+#  └──────────────────────────────────────────────────────────┘
+#################################################################
+
+### --- Capability (Architecture / Outcome) ---------------------------------
+
+frh:ReportProductionCapability rdf:type edgy:Capability ;
+    rdfs:label "Fund-report production"@en ;
+    rdfs:comment "Ability to create, edit and seed regulatory fund reports with their controls, validations, notes and disclaimers."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:SQLiteDB ;
+    edgy:hasBusinessValue 4 ; edgy:hasComplexity 2 ; edgy:hasTag "reporting" .
+
+frh:ReportValidationCapability rdf:type edgy:Capability ;
+    rdfs:label "Multi-team report validation"@en ;
+    rdfs:comment "Ability to drive a report through per-team sign-offs (VAS, Fund Accounting, Risk, Compliance) with pending/approved/rejected states and a status workflow."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:SQLiteDB ;
+    edgy:hasBusinessValue 5 ; edgy:hasComplexity 3 ; edgy:hasPriority 1 ; edgy:hasTag "governance" .
+
+frh:DataQualityMonitoringCapability rdf:type edgy:Capability ;
+    rdfs:label "RM data-quality monitoring"@en ;
+    rdfs:comment "Ability to evaluate SPARQL-expressed RM rules (missing name/currency/ESG/asset class) over the RDF view of share classes and record violations as controls."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:RDFGraph ;
+    edgy:requires frh:DShareClassView ;
+    edgy:hasBusinessValue 4 ; edgy:hasComplexity 3 ; edgy:hasTag "data-quality" .
+
+frh:SemanticQueryingCapability rdf:type edgy:Capability ;
+    rdfs:label "RDF/SPARQL semantic querying"@en ;
+    rdfs:comment "Ability to materialise relational share-class rows as RDF triples and query them with SPARQL (SELECT/ASK), bridging Oracle and the semantic layer."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:RDFGraph ;
+    edgy:hasComplexity 4 ; edgy:hasTag "semantic-web" .
+
+frh:NLQueryingCapability rdf:type edgy:Capability ;
+    rdfs:label "Natural-language querying"@en ;
+    rdfs:comment "Ability to translate an English question into one read-only Oracle SELECT via an LLM, run it through the SELECT-only guard, and return rows with the generated SQL shown for transparency."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:LLMGateway ;
+    edgy:requires frh:SchemaPrompt ;
+    edgy:hasBusinessValue 5 ; edgy:hasComplexity 4 ; edgy:hasPriority 1 ; edgy:hasTag "ai" .
+
+frh:FundResolutionCapability rdf:type edgy:Capability ;
+    rdfs:label "Fuzzy fund-name resolution"@en ;
+    rdfs:comment "Ability to map an approximate fund mention to the closest real share class / sub-fund using rapidfuzz token-set matching (case-insensitive default_process)."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:RapidFuzzLib ;
+    edgy:requires frh:FundCatalog ;
+    edgy:hasComplexity 3 ; edgy:hasTag "fuzzy-matching" .
+
+frh:VisualizationCapability rdf:type edgy:Capability ;
+    rdfs:label "Automatic result visualization"@en ;
+    rdfs:comment "Ability of the two-agent system to decide whether a result is chartable and to emit a ready Chart.js config (bar/line/pie/doughnut) with a colour palette."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:ChartJsLib ;
+    edgy:requires frh:LLMGateway ;
+    edgy:hasBusinessValue 4 ; edgy:hasComplexity 3 ; edgy:hasTag "visualization" .
+
+frh:ExposureAnalyticsCapability rdf:type edgy:Capability ;
+    rdfs:label "Country/issuer exposure analytics"@en ;
+    rdfs:comment "Ability to compute normalised exposure (100*SUM(group)/SUM(total)) of a share class to a country/sector by joining D_SHARE_CLASS to the 34M-row positions table on sub-fund name at the latest valuation date."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:requires frh:PositionsTable ;
+    edgy:requires frh:DShareClassView ;
+    edgy:hasBusinessValue 5 ; edgy:hasComplexity 4 ; edgy:hasTag "analytics" .
+
+### --- Process (Architecture / Activity) ------------------------------------
+
+frh:ValidationWorkflow rdf:type edgy:Process ;
+    rdfs:label "Report validation workflow"@en ;
+    rdfs:comment "Coordinated activity: each team sets its validation state and the report status moves Pending → In Review → Validated / Rejected; controls are aggregated into a health badge."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:ReportValidationCapability ;
+    edgy:creates frh:ValidatedFundReport ;
+    edgy:requires frh:SQLiteDB ;
+    edgy:uses frh:SQLiteDB ;
+    edgy:hasPriority 1 ; edgy:hasBusinessValue 5 ; edgy:hasTag "governance" .
+
+frh:NL2SQLPipeline rdf:type edgy:Process ;
+    rdfs:label "Agentic NL→SQL pipeline"@en ;
+    rdfs:comment "Orchestrating process (nl2sql.ask): extract fund mention → fuzzy resolve → inject exact sub-fund/ISIN hint into LLM SQL generation → run guarded query → advise+build chart."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:NLQueryingCapability ;
+    edgy:requires frh:LLMGateway ;
+    edgy:requires frh:FundResolutionCapability ;
+    edgy:requires frh:SchemaPrompt ;
+    edgy:uses frh:LLMGateway ;
+    edgy:uses frh:SchemaPrompt ;
+    edgy:uses frh:NL2SQLModule ;
+    edgy:hasComplexity 5 ; edgy:hasBusinessValue 5 ; edgy:hasPriority 1 ; edgy:hasTag "ai" .
+
+frh:FuzzyResolutionProcess rdf:type edgy:Process ;
+    rdfs:label "Fuzzy fund-name resolution"@en ;
+    rdfs:comment "Process (resolver.best): load active share-class catalogue (cached 1h), rapidfuzz token-set match the mention to the best sub-fund/ISIN above threshold."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:FundResolutionCapability ;
+    edgy:requires frh:RapidFuzzLib ;
+    edgy:uses frh:RapidFuzzLib ;
+    edgy:uses frh:FundCatalog ;
+    edgy:uses frh:ResolverModule ;
+    edgy:hasComplexity 3 ; edgy:hasTag "fuzzy-matching" .
+
+frh:ChartAdvisoryProcess rdf:type edgy:Process ;
+    rdfs:label "Chart advisory + build process"@en ;
+    rdfs:comment "Two-agent process (viz_agent.advise → build_chart): the advisor decides visualize/type/x/y (LLM + heuristic fallback); the builder emits a Chart.js config capped at 40 points."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:VisualizationCapability ;
+    edgy:requires frh:ChartJsLib ;
+    edgy:uses frh:LLMGateway ;
+    edgy:uses frh:VizAgentModule ;
+    edgy:hasComplexity 3 ; edgy:hasTag "visualization" .
+
+frh:RDFMaterializationProcess rdf:type edgy:Process ;
+    rdfs:label "Relational→RDF materialization"@en ;
+    rdfs:comment "Process (fundlink_rdf.load): fetch share-class rows via oracledb and map a curated 14-column subset to RDF triples in an in-memory rdflib graph using the fl: ontology."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:SemanticQueryingCapability ;
+    edgy:requires frh:DShareClassView ;
+    edgy:uses frh:FundlinkRDFModule ;
+    edgy:uses frh:DShareClassView ;
+    edgy:hasComplexity 4 ; edgy:hasTag "semantic-web" .
+
+frh:SPARQLRuleEvaluation rdf:type edgy:Process ;
+    rdfs:label "RM rule (SPARQL) evaluation"@en ;
+    rdfs:comment "Process (fundlink_rdf.run_rules): run the four RM data-quality SPARQL rules over the materialised graph and collect violating ISINs, recorded as controls on reports."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:DataQualityMonitoringCapability ;
+    edgy:requires frh:RDFGraph ;
+    edgy:uses frh:RDFGraph ;
+    edgy:uses frh:FundlinkRDFModule ;
+    edgy:hasComplexity 3 ; edgy:hasTag "data-quality" .
+
+frh:SQLExecutionProcess rdf:type edgy:Process ;
+    rdfs:label "Guarded SQL execution"@en ;
+    rdfs:comment "Process (fundlink.run_query): accept SELECT / WITH…SELECT only, block write keywords by regex, apply a 60s call timeout, and return columns+rows from FundLink."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:ExposureAnalyticsCapability ;
+    edgy:requires frh:FundLinkDW ;
+    edgy:uses frh:FundLinkDW ;
+    edgy:uses frh:FundlinkModule ;
+    edgy:hasComplexity 2 ; edgy:hasTag "security" .
+
+frh:SeedingProcess rdf:type edgy:Process ;
+    rdfs:label "Demo data seeding"@en ;
+    rdfs:comment "Management command (seed.py) that loads/reset demo reports, controls, validations, notes and chats into SQLite."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:realizes frh:ReportProductionCapability ;
+    edgy:creates frh:ValidatedFundReport ;
+    edgy:uses frh:SQLiteDB ;
+    edgy:hasComplexity 1 ; edgy:hasTag "tooling" .
+
+### --- Asset (Architecture / Object) ----------------------------------------
+
+frh:DjangoApp rdf:type edgy:Asset ;
+    rdfs:label "Django application (reporting)"@en ;
+    rdfs:comment "The Django 6.0.6 project 'fundhub' with the 'reporting' app; runs in the agenticai conda env."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "application" .
+
+frh:SQLiteDB rdf:type edgy:Asset ;
+    rdfs:label "SQLite database (db.sqlite3)"@en ;
+    rdfs:comment "Operational store for Report, Control, Validation, Note, Chat, Message entities."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "datastore" .
+
+frh:FundLinkDW rdf:type edgy:Asset ;
+    rdfs:label "FundLink Oracle data warehouse"@en ;
+    rdfs:comment "Read-only Oracle warehouse (account MAL_FUNDDATA, DSN edw_ro-dataguard…pedwg) reached via the oracledb thin client."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasBusinessValue 5 ; edgy:hasTag "datastore" .
+
+frh:DShareClassView rdf:type edgy:Asset ;
+    rdfs:label "EDW_PL.D_SHARE_CLASS view"@en ;
+    rdfs:comment "Share-class master view (82 columns, SCD history); filter D_SHC_ACTIVE_FLAG='Y' for current. Source of the RDF graph and the fund catalogue."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "table" .
+
+frh:PositionsTable rdf:type edgy:Asset ;
+    rdfs:label "EDW_FL.SAT_FUNDDATA_DPASPOS_POSITION table"@en ;
+    rdfs:comment "~34M-row holdings/positions table; must filter LOAD_END_DATE > DATE '2999-01-01' and restrict to one sub-fund at its latest VALUATION_DATE. Source of exposure analytics."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasComplexity 4 ; edgy:hasTag "table" .
+
+frh:LLMGateway rdf:type edgy:Asset ;
+    rdfs:label "Internal LLM gateway (gpt-4.1-mini)"@en ;
+    rdfs:comment "OpenAI-compatible gateway at https://svlsecgpt101a:4000/v1 (private CA → verify=false), model gpt-4.1-mini; powers NL2SQL, fund-mention extraction and chart advisory."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasBusinessValue 5 ; edgy:hasTag "ai-service" .
+
+frh:RDFGraph rdf:type edgy:Asset ;
+    rdfs:label "In-memory rdflib graph"@en ;
+    rdfs:comment "rdflib Graph holding share classes as fl:ShareClass triples; queried by SPARQL and the RM rules."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "knowledge-graph" .
+
+frh:ChartJsLib rdf:type edgy:Asset ;
+    rdfs:label "Chart.js 4.4.1 (CDN)"@en ;
+    rdfs:comment "Client-side charting library loaded via jsdelivr CDN to render the visualization agent's config."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "library" .
+
+frh:RapidFuzzLib rdf:type edgy:Asset ;
+    rdfs:label "rapidfuzz 3.14.5"@en ;
+    rdfs:comment "Fuzzy-matching library; token_set_ratio with utils.default_process for case-insensitive fund-name resolution."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "library" .
+
+frh:SchemaPrompt rdf:type edgy:Asset ;
+    rdfs:label "Curated schema prompt"@en ;
+    rdfs:comment "Knowledge asset: the hand-curated Oracle schema + join guidance + exposure-normalization pattern + few-shot examples that constrains the LLM's SQL generation."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasBusinessValue 5 ; edgy:hasComplexity 3 ; edgy:hasTag "prompt" .
+
+frh:FundCatalog rdf:type edgy:Asset ;
+    rdfs:label "Fund/share-class catalogue"@en ;
+    rdfs:comment "Cached list of active share-class names, ISINs and sub-fund names loaded by the resolver from D_SHARE_CLASS."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "reference-data" .
+
+frh:ConfigIni rdf:type edgy:Asset ;
+    rdfs:label "config.ini (git-ignored)"@en ;
+    rdfs:comment "Holds [fundlink] DB credentials and [llm] gateway settings (api_key, base_url, model, verify). Kept out of source control."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "secret" .
+
+frh:GitHubRepo rdf:type edgy:Asset ;
+    rdfs:label "GitHub repository"@en ;
+    rdfs:comment "Remote repo https://github.com/aw1186/dpam_vas_ai_workshop.git (main) hosting the source; config.ini is git-ignored."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:hasTag "scm" .
+
+# --- Source-code module assets (parts of the Django app) ---
+
+frh:FundlinkModule rdf:type edgy:Asset ;
+    rdfs:label "reporting/fundlink.py"@en ;
+    rdfs:comment "Oracle connection helper + read-only query guard (get_connection, test_connection, run_query)."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ; edgy:viewedThrough edgy:architectureFacet ; edgy:hasTag "module" .
+
+frh:NL2SQLModule rdf:type edgy:Asset ;
+    rdfs:label "reporting/nl2sql.py"@en ;
+    rdfs:comment "Agentic NL→SQL: SCHEMA_PROMPT, FEWSHOT, extract_fund_mention, generate_sql, orchestrating ask()."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ; edgy:viewedThrough edgy:architectureFacet ; edgy:hasTag "module" .
+
+frh:ResolverModule rdf:type edgy:Asset ;
+    rdfs:label "reporting/resolver.py"@en ;
+    rdfs:comment "Fuzzy resolver: catalogue loader + resolve()/best() over rapidfuzz."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ; edgy:viewedThrough edgy:architectureFacet ; edgy:hasTag "module" .
+
+frh:VizAgentModule rdf:type edgy:Asset ;
+    rdfs:label "reporting/viz_agent.py"@en ;
+    rdfs:comment "Two visualization agents: advise() and build_chart()."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ; edgy:viewedThrough edgy:architectureFacet ; edgy:hasTag "module" .
+
+frh:FundlinkRDFModule rdf:type edgy:Asset ;
+    rdfs:label "reporting/fundlink_rdf.py"@en ;
+    rdfs:comment "Relational→RDF→SPARQL bridge with COLUMN_PREDICATES, RULE_DEFS, run_sparql, run_rules, load."@en ;
+    edgy:belongsToFacet edgy:architectureFacet ; edgy:viewedThrough edgy:architectureFacet ; edgy:hasTag "module" .
+
+#################################################################
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  EXPERIENCE FACET — Task · Journey · Channel               │
+#  └──────────────────────────────────────────────────────────┘
+#################################################################
+
+### --- Task (Experience / Outcome) ------------------------------------------
+
+frh:QueryDataInPlainLanguage rdf:type edgy:Task ;
+    rdfs:label "Query fund data in plain language"@en ;
+    rdfs:comment "User task: get an answer from FundLink by typing a question, without knowing SQL or the data model."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:ChatInterface ;
+    edgy:uses frh:FundLinkPage ;
+    edgy:hasBusinessValue 5 ; edgy:hasTag "self-service" .
+
+frh:AssessCountryExposure rdf:type edgy:Task ;
+    rdfs:label "Assess a fund's country/issuer exposure"@en ;
+    rdfs:comment "User task: e.g. 'what is the exposure of the newgems sustainable fund to Brazil?' answered as a normalised percentage."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:FundLinkPage ;
+    edgy:hasBusinessValue 5 ; edgy:hasTag "analytics" .
+
+frh:FindFundByApproxName rdf:type edgy:Task ;
+    rdfs:label "Find a fund by approximate name"@en ;
+    rdfs:comment "User task: refer to a fund loosely ('patrimonial', 'newgems') and have the system pick the best matching share class."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:FundLinkPage ;
+    edgy:hasTag "fuzzy-matching" .
+
+frh:VisualizeResults rdf:type edgy:Task ;
+    rdfs:label "See a visual of the answer"@en ;
+    rdfs:comment "User task: get an automatic chart when the result shape lends itself to one."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:FundLinkPage ;
+    edgy:hasTag "visualization" .
+
+frh:ValidateReport rdf:type edgy:Task ;
+    rdfs:label "Validate / sign off a report"@en ;
+    rdfs:comment "User task for a team member: review a report and set the team's validation state."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:ReportsPage ;
+    edgy:hasBusinessValue 5 ; edgy:hasPriority 1 ; edgy:hasTag "governance" .
+
+frh:ReviewDataQuality rdf:type edgy:Task ;
+    rdfs:label "Review data-quality controls"@en ;
+    rdfs:comment "User task for a data steward: run the RM rules and inspect flagged reports/controls."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:uses frh:ControlsPage ;
+    edgy:hasTag "data-quality" .
+
+### --- Journey (Experience / Activity) --------------------------------------
+
+frh:AnalystQueryJourney rdf:type edgy:Journey ;
+    rdfs:label "Analyst self-service query journey"@en ;
+    rdfs:comment "An analyst opens the FundLink page, asks a question, sees the fuzzy resolution note, the generated SQL, the results table and (when suitable) a chart."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:traverses frh:FundLinkPage ;
+    edgy:traverses frh:ChatInterface .
+
+frh:ValidatorReviewJourney rdf:type edgy:Journey ;
+    rdfs:label "Validator review journey"@en ;
+    rdfs:comment "A team member starts on the dashboard, drills into a report, reviews controls and notes, and records the team sign-off."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:traverses frh:DashboardPage ;
+    edgy:traverses frh:ReportsPage .
+
+frh:DataStewardJourney rdf:type edgy:Journey ;
+    rdfs:label "Data-steward quality journey"@en ;
+    rdfs:comment "A steward runs the RM rules on the Controls page and follows flagged share classes to the FundLink page for inspection."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:traverses frh:ControlsPage ;
+    edgy:traverses frh:FundLinkPage .
+
+### --- Channel (Experience / Object) ----------------------------------------
+
+frh:WebUI rdf:type edgy:Channel ;
+    rdfs:label "Web UI (navy/slate)"@en ;
+    rdfs:comment "The Django-rendered web interface; umbrella channel for all pages."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "web" .
+
+frh:DashboardPage rdf:type edgy:Channel ;
+    rdfs:label "Dashboard page"@en ;
+    rdfs:comment "Live metrics, validation progress by team, control consistency (templates/dashboard.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "page" .
+
+frh:ReportsPage rdf:type edgy:Channel ;
+    rdfs:label "Reports page"@en ;
+    rdfs:comment "Search/filter, view, create, edit, delete reports; per-team validation; notes & disclaimers (templates/reports.html, report_detail.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "page" .
+
+frh:ControlsPage rdf:type edgy:Channel ;
+    rdfs:label "Checks & Controls page"@en ;
+    rdfs:comment "Aggregate control health + catalogue of flagged reports, including RM-rule-derived controls (templates/controls.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "page" .
+
+frh:ChatInterface rdf:type edgy:Channel ;
+    rdfs:label "Ad-hoc chat interface"@en ;
+    rdfs:comment "DB-backed chat threads with auto-replies (templates/chat.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "page" .
+
+frh:DatabasePage rdf:type edgy:Channel ;
+    rdfs:label "Database admin page"@en ;
+    rdfs:comment "Generic CRUD over every table with one-click demo reset (templates/database.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "page" .
+
+frh:FundLinkPage rdf:type edgy:Channel ;
+    rdfs:label "FundLink page"@en ;
+    rdfs:comment "Single screen exposing connection status, NL ask box (+resolution, SQL, chart, table), raw SQL box, SPARQL box and the RM-rule runner (templates/fundlink.html)."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasBusinessValue 5 ; edgy:hasTag "page" .
+
+frh:DjangoAdmin rdf:type edgy:Channel ;
+    rdfs:label "Django admin"@en ;
+    rdfs:comment "Built-in admin at /django-admin/ for power users."@en ;
+    edgy:belongsToFacet edgy:experienceFacet ; edgy:viewedThrough edgy:experienceFacet ; edgy:hasTag "admin" .
+
+#################################################################
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  INTERSECTION ELEMENTS — Organization · Product · Brand    │
+#  └──────────────────────────────────────────────────────────┘
+#################################################################
+
+### --- Organization (Identity × Architecture / People) ----------------------
+
+frh:DPAM rdf:type edgy:Organization ;
+    rdfs:label "DPAM / Indosuez (enterprise)"@en ;
+    rdfs:comment "The asset/wealth-management enterprise commissioning the Fund Reporting Hub during the AI workshop."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:alignsWithGist gist:Organization ;
+    edgy:groundedInBFO bfo:BFO_0000027 .   # object aggregate
+
+frh:VASTeam rdf:type edgy:Organization ;
+    rdfs:label "VAS team"@en ;
+    rdfs:comment "Valuation & Administration Services team — a validating organisation unit."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet .
+
+frh:FundAccountingTeam rdf:type edgy:Organization ;
+    rdfs:label "Fund Accounting team"@en ;
+    rdfs:comment "Fund-accounting validating organisation unit (NAV reconciliation, balances)."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet .
+
+frh:RiskTeam rdf:type edgy:Organization ;
+    rdfs:label "Risk team"@en ;
+    rdfs:comment "Risk validating organisation unit; owner of RM data-quality monitoring."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet .
+
+frh:ComplianceTeam rdf:type edgy:Organization ;
+    rdfs:label "Compliance team"@en ;
+    rdfs:comment "Compliance validating organisation unit; owner of disclosure completeness."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet .
+
+frh:DevTeam rdf:type edgy:Organization ;
+    rdfs:label "Workshop build team"@en ;
+    rdfs:comment "The AI-workshop developers who co-created the platform's AI capabilities."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:architectureFacet ;
+    edgy:viewedThrough edgy:architectureFacet .
+
+### --- People (sub-organisational roles) ------------------------------------
+
+frh:ReportingAnalyst rdf:type edgy:People ;
+    rdfs:label "Reporting analyst"@en ;
+    rdfs:comment "Business user who interrogates FundLink and prepares fund reports."@en ;
+    edgy:groundedInBFO bfo:BFO_0000040 .   # material entity
+
+frh:Validator rdf:type edgy:People ;
+    rdfs:label "Team validator"@en ;
+    rdfs:comment "Member of a validating team who signs off reports."@en .
+
+frh:DataSteward rdf:type edgy:People ;
+    rdfs:label "Data steward"@en ;
+    rdfs:comment "Person responsible for share-class master-data quality."@en .
+
+frh:FundManager rdf:type edgy:People ;
+    rdfs:label "Fund manager"@en ;
+    rdfs:comment "Manager of a sub-fund (D_SHC_DSBF_MANAGER)."@en .
+
+frh:Client rdf:type edgy:People ;
+    rdfs:label "Client / investor"@en ;
+    rdfs:comment "End co-creator who consumes validated fund reports and benefits from the data."@en .
+
+frh:Developer rdf:type edgy:People ;
+    rdfs:label "Developer"@en ;
+    rdfs:comment "Engineer building and maintaining the application and AI agents."@en .
+
+### --- Product (Architecture × Experience / Object) -------------------------
+
+frh:FundReportingHub rdf:type edgy:Product ;
+    rdfs:label "Fund Reporting Hub (product)"@en ;
+    rdfs:comment "The deliverable web application offered to reporting, validation and data-steward users."@en ;
+    edgy:intersectsWith edgy:architectureFacet , edgy:experienceFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:requires frh:ReportValidationCapability ;
+    edgy:requires frh:NLQueryingCapability ;
+    edgy:alignsWithGist gist:Offering ;
+    edgy:hasBusinessValue 5 ; edgy:hasPriority 1 ; edgy:hasTag "platform" .
+
+frh:NLQueryAssistant rdf:type edgy:Product ;
+    rdfs:label "Natural-language query assistant (feature product)"@en ;
+    rdfs:comment "The ask-your-data feature: NL→SQL with fuzzy resolution and auto-visualization, the workshop's headline deliverable."@en ;
+    edgy:intersectsWith edgy:architectureFacet , edgy:experienceFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:requires frh:NLQueryingCapability ;
+    edgy:requires frh:FundResolutionCapability ;
+    edgy:requires frh:VisualizationCapability ;
+    edgy:hasBusinessValue 5 ; edgy:hasComplexity 5 ; edgy:hasPriority 1 ; edgy:hasTag "ai-feature" .
+
+frh:ValidatedFundReport rdf:type edgy:Product ;
+    rdfs:label "Validated fund report (deliverable)"@en ;
+    rdfs:comment "A fund report that has passed its controls and team sign-offs (status=Validated) — the tangible output delivered to clients."@en ;
+    edgy:intersectsWith edgy:architectureFacet , edgy:experienceFacet ;
+    edgy:viewedThrough edgy:architectureFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:requires frh:ReportProductionCapability ;
+    edgy:hasBusinessValue 5 ; edgy:hasTag "deliverable" .
+
+### --- Brand (Identity × Experience / Object) -------------------------------
+
+frh:FundReportingHubBrand rdf:type edgy:Brand ;
+    rdfs:label "Fund Reporting Hub brand"@en ;
+    rdfs:comment "The recognisable identity of the platform — its name, navy/slate look and the promise of trustworthy, self-service fund data."@en ;
+    edgy:intersectsWith edgy:identityFacet , edgy:experienceFacet ;
+    edgy:viewedThrough edgy:identityFacet ;
+    edgy:viewedThrough edgy:experienceFacet ;
+    edgy:hasTag "brand" .
+
+#################################################################
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  RELATIONSHIP ASSERTIONS (object-property instantiation)   │
+#  │  Grouped by property for systematic, exhaustive coverage.  │
+#  └──────────────────────────────────────────────────────────┘
+#################################################################
+
+### === edgy:pursues  (Organization → Purpose) ===============================
+frh:DPAM edgy:pursues frh:AccurateValidatedReporting ,
+                      frh:RegulatoryCompliance ,
+                      frh:DataQualityAssurance ,
+                      frh:DataDemocratization .
+
+### === edgy:has  (Organization → Capability) ================================
+frh:DPAM edgy:has frh:ReportProductionCapability ,
+                  frh:ReportValidationCapability ,
+                  frh:DataQualityMonitoringCapability ,
+                  frh:SemanticQueryingCapability ,
+                  frh:NLQueryingCapability ,
+                  frh:FundResolutionCapability ,
+                  frh:VisualizationCapability ,
+                  frh:ExposureAnalyticsCapability .
+
+### === edgy:authors  (Organization → Story) ================================
+frh:DPAM    edgy:authors frh:ReportingHubStory .
+frh:DevTeam edgy:authors frh:SelfServiceDataStory .
+
+### === edgy:builds  (Organization → Brand) =================================
+frh:DPAM edgy:builds frh:FundReportingHubBrand .
+
+### === edgy:makes  (Organization → Product) ================================
+frh:DPAM    edgy:makes frh:FundReportingHub ,
+                       frh:ValidatedFundReport .
+frh:DevTeam edgy:makes frh:NLQueryAssistant .
+
+### === edgy:performsProcess  (Organization → Process) ======================
+frh:VASTeam        edgy:performsProcess frh:ValidationWorkflow .
+frh:FundAccountingTeam edgy:performsProcess frh:ValidationWorkflow .
+frh:ComplianceTeam edgy:performsProcess frh:ValidationWorkflow .
+frh:RiskTeam       edgy:performsProcess frh:SPARQLRuleEvaluation .
+frh:DPAM           edgy:performsProcess frh:NL2SQLPipeline .
+frh:DevTeam        edgy:performsProcess frh:SeedingProcess ,
+                                        frh:RDFMaterializationProcess .
+
+### === edgy:performs  (People → Activity: Process or Journey) ==============
+frh:ReportingAnalyst edgy:performs frh:AnalystQueryJourney ,
+                                   frh:NL2SQLPipeline .
+frh:Validator        edgy:performs frh:ValidatorReviewJourney ,
+                                   frh:ValidationWorkflow .
+frh:DataSteward      edgy:performs frh:DataStewardJourney ,
+                                   frh:SPARQLRuleEvaluation .
+frh:Developer        edgy:performs frh:SeedingProcess ,
+                                   frh:RDFMaterializationProcess .
+
+### === edgy:achieves  (People → Outcome: Task/Capability/Purpose) ==========
+frh:ReportingAnalyst edgy:achieves frh:AssessCountryExposure ,
+                                   frh:QueryDataInPlainLanguage .
+frh:Validator        edgy:achieves frh:ValidateReport ,
+                                   frh:AccurateValidatedReporting .
+frh:DataSteward      edgy:achieves frh:ReviewDataQuality ,
+                                   frh:DataQualityAssurance .
+frh:Client           edgy:achieves frh:VisualizeResults .
+frh:FundManager      edgy:achieves frh:AssessCountryExposure .
+
+### === edgy:co-creates  (People → Capability) ==============================
+frh:DevTeam          edgy:co-creates frh:NLQueryingCapability ,
+                                     frh:VisualizationCapability ,
+                                     frh:FundResolutionCapability ,
+                                     frh:SemanticQueryingCapability .
+frh:RiskTeam         edgy:co-creates frh:DataQualityMonitoringCapability .
+frh:ReportingAnalyst edgy:co-creates frh:ExposureAnalyticsCapability .
+
+### === edgy:contextualizes  (Story → Purpose) =============================
+frh:ReportingHubStory   edgy:contextualizes frh:AccurateValidatedReporting ,
+                                             frh:RegulatoryCompliance .
+frh:SelfServiceDataStory edgy:contextualizes frh:DataDemocratization .
+
+### === edgy:conveys  (Content → Story) =====================================
+frh:PRD_Reporting edgy:conveys frh:ReportingHubStory .
+frh:ProjectReadme edgy:conveys frh:SelfServiceDataStory .
+frh:Disclaimer    edgy:conveys frh:ReportingHubStory .
+
+### === edgy:expresses  (Content → Purpose) =================================
+frh:PRD_Reporting       edgy:expresses frh:AccurateValidatedReporting .
+frh:PRD_CRM             edgy:expresses frh:RegulatoryCompliance .
+frh:Disclaimer          edgy:expresses frh:RegulatoryCompliance .
+frh:GeneratedFundReport edgy:expresses frh:AccurateValidatedReporting .
+
+### === edgy:realizes  (Process → Capability) ==============================
+frh:ValidationWorkflow      edgy:realizes frh:ReportValidationCapability .
+frh:NL2SQLPipeline          edgy:realizes frh:NLQueryingCapability .
+frh:FuzzyResolutionProcess  edgy:realizes frh:FundResolutionCapability .
+frh:ChartAdvisoryProcess    edgy:realizes frh:VisualizationCapability .
+frh:RDFMaterializationProcess edgy:realizes frh:SemanticQueryingCapability .
+frh:SPARQLRuleEvaluation    edgy:realizes frh:DataQualityMonitoringCapability .
+frh:SQLExecutionProcess     edgy:realizes frh:ExposureAnalyticsCapability .
+frh:SeedingProcess          edgy:realizes frh:ReportProductionCapability .
+
+### === edgy:creates  (Process → Product) ==================================
+frh:ValidationWorkflow edgy:creates frh:ValidatedFundReport .
+frh:SeedingProcess     edgy:creates frh:ValidatedFundReport .
+
+### === edgy:requires  (Process/Product/Capability → Capability/Asset) ======
+frh:NL2SQLPipeline          edgy:requires frh:LLMGateway , frh:SchemaPrompt , frh:FundResolutionCapability .
+frh:ChartAdvisoryProcess    edgy:requires frh:ChartJsLib .
+frh:FuzzyResolutionProcess  edgy:requires frh:RapidFuzzLib , frh:FundCatalog .
+frh:RDFMaterializationProcess edgy:requires frh:DShareClassView .
+frh:SPARQLRuleEvaluation    edgy:requires frh:RDFGraph .
+frh:SQLExecutionProcess     edgy:requires frh:FundLinkDW .
+frh:NLQueryingCapability    edgy:requires frh:LLMGateway , frh:SchemaPrompt .
+frh:SemanticQueryingCapability edgy:requires frh:RDFGraph .
+frh:FundResolutionCapability edgy:requires frh:RapidFuzzLib , frh:FundCatalog .
+frh:VisualizationCapability edgy:requires frh:ChartJsLib , frh:LLMGateway .
+frh:ExposureAnalyticsCapability edgy:requires frh:PositionsTable , frh:DShareClassView .
+frh:DataQualityMonitoringCapability edgy:requires frh:RDFGraph , frh:DShareClassView .
+frh:FundReportingHub        edgy:requires frh:ReportValidationCapability , frh:NLQueryingCapability .
+frh:NLQueryAssistant        edgy:requires frh:NLQueryingCapability , frh:FundResolutionCapability , frh:VisualizationCapability .
+frh:ValidatedFundReport     edgy:requires frh:ReportProductionCapability .
+
+### === edgy:uses  (People/Activity/Task → Object/Channel) ==================
+# People → Channel/Object
+frh:ReportingAnalyst edgy:uses frh:FundLinkPage , frh:WebUI .
+frh:Validator        edgy:uses frh:ReportsPage , frh:DashboardPage .
+frh:DataSteward      edgy:uses frh:ControlsPage .
+frh:Developer        edgy:uses frh:DjangoAdmin , frh:GitHubRepo , frh:ConfigIni .
+# Activity (Process) → Object
+frh:NL2SQLPipeline          edgy:uses frh:LLMGateway , frh:SchemaPrompt , frh:NL2SQLModule .
+frh:FuzzyResolutionProcess  edgy:uses frh:RapidFuzzLib , frh:FundCatalog , frh:ResolverModule .
+frh:ChartAdvisoryProcess    edgy:uses frh:LLMGateway , frh:VizAgentModule .
+frh:RDFMaterializationProcess edgy:uses frh:DShareClassView , frh:FundlinkRDFModule .
+frh:SPARQLRuleEvaluation    edgy:uses frh:RDFGraph , frh:FundlinkRDFModule .
+frh:SQLExecutionProcess     edgy:uses frh:FundLinkDW , frh:FundlinkModule .
+frh:ValidationWorkflow      edgy:uses frh:SQLiteDB .
+frh:SeedingProcess          edgy:uses frh:SQLiteDB .
+# Task → Channel
+frh:QueryDataInPlainLanguage edgy:uses frh:ChatInterface , frh:FundLinkPage .
+frh:AssessCountryExposure    edgy:uses frh:FundLinkPage .
+frh:FindFundByApproxName     edgy:uses frh:FundLinkPage .
+frh:VisualizeResults         edgy:uses frh:FundLinkPage .
+frh:ValidateReport           edgy:uses frh:ReportsPage .
+frh:ReviewDataQuality        edgy:uses frh:ControlsPage .
+
+### === edgy:traverses  (Journey → Channel) ================================
+frh:AnalystQueryJourney   edgy:traverses frh:FundLinkPage , frh:ChatInterface , frh:WebUI .
+frh:ValidatorReviewJourney edgy:traverses frh:DashboardPage , frh:ReportsPage , frh:WebUI .
+frh:DataStewardJourney    edgy:traverses frh:ControlsPage , frh:FundLinkPage , frh:WebUI .
+
+### === edgy:isPartOf  (Task → Journey) =====================================
+frh:QueryDataInPlainLanguage edgy:isPartOf frh:AnalystQueryJourney .
+frh:AssessCountryExposure    edgy:isPartOf frh:AnalystQueryJourney .
+frh:FindFundByApproxName     edgy:isPartOf frh:AnalystQueryJourney .
+frh:VisualizeResults         edgy:isPartOf frh:AnalystQueryJourney .
+frh:ValidateReport           edgy:isPartOf frh:ValidatorReviewJourney .
+frh:ReviewDataQuality        edgy:isPartOf frh:DataStewardJourney .
+
+### === edgy:serves  (Product → Task) ======================================
+frh:NLQueryAssistant    edgy:serves frh:QueryDataInPlainLanguage ,
+                                    frh:AssessCountryExposure ,
+                                    frh:FindFundByApproxName ,
+                                    frh:VisualizeResults .
+frh:FundReportingHub    edgy:serves frh:ValidateReport ,
+                                    frh:ReviewDataQuality .
+frh:ValidatedFundReport edgy:serves frh:ReviewDataQuality .
+
+### === edgy:featuresIn  (Product → Journey) ===============================
+frh:NLQueryAssistant    edgy:featuresIn frh:AnalystQueryJourney .
+frh:ValidatedFundReport edgy:featuresIn frh:ValidatorReviewJourney .
+frh:FundReportingHub    edgy:featuresIn frh:DataStewardJourney ,
+                                        frh:ValidatorReviewJourney .
+
+### === edgy:embodies  (Product → Brand) ===================================
+frh:FundReportingHub    edgy:embodies frh:FundReportingHubBrand .
+frh:NLQueryAssistant    edgy:embodies frh:FundReportingHubBrand .
+frh:ValidatedFundReport edgy:embodies frh:FundReportingHubBrand .
+
+### === edgy:appearsIn  (Brand → Journey) ==================================
+frh:FundReportingHubBrand edgy:appearsIn frh:AnalystQueryJourney ,
+                                         frh:ValidatorReviewJourney ,
+                                         frh:DataStewardJourney .
+
+### === edgy:supports  (Brand → Task) ======================================
+frh:FundReportingHubBrand edgy:supports frh:QueryDataInPlainLanguage ,
+                                        frh:ValidateReport ,
+                                        frh:VisualizeResults .
+
+### === edgy:evokes  (Brand → Story) =======================================
+frh:FundReportingHubBrand edgy:evokes frh:ReportingHubStory ,
+                                      frh:SelfServiceDataStory .
+
+### === edgy:represents  (Brand → Purpose) =================================
+frh:FundReportingHubBrand edgy:represents frh:AccurateValidatedReporting ,
+                                          frh:DataDemocratization .
+
+### === edgy:flow  (Element → Element; objects passing along the pipeline) ==
+frh:FundLinkDW              edgy:flow frh:SQLExecutionProcess .          # rows
+frh:SQLExecutionProcess     edgy:flow frh:NL2SQLPipeline .              # result set
+frh:FuzzyResolutionProcess  edgy:flow frh:NL2SQLPipeline .              # resolved fund hint
+frh:NL2SQLPipeline          edgy:flow frh:ChartAdvisoryProcess .        # rows+columns
+frh:DShareClassView         edgy:flow frh:RDFMaterializationProcess .   # share-class rows
+frh:RDFMaterializationProcess edgy:flow frh:SPARQLRuleEvaluation .      # RDF graph
+frh:SPARQLRuleEvaluation    edgy:flow frh:ControlsPage .                # violations → controls
+
+### === edgy:tree  (hierarchical decomposition / containment) ==============
+# Organisation hierarchy
+frh:DPAM edgy:tree frh:VASTeam ,
+                   frh:FundAccountingTeam ,
+                   frh:RiskTeam ,
+                   frh:ComplianceTeam ,
+                   frh:DevTeam .
+# Product decomposition
+frh:FundReportingHub edgy:tree frh:NLQueryAssistant ,
+                               frh:ValidatedFundReport .
+# Process decomposition (NL2SQL orchestrates sub-processes)
+frh:NL2SQLPipeline edgy:tree frh:FuzzyResolutionProcess ,
+                             frh:ChartAdvisoryProcess ,
+                             frh:SQLExecutionProcess .
+# Channel decomposition (WebUI contains pages)
+frh:WebUI edgy:tree frh:DashboardPage ,
+                    frh:ReportsPage ,
+                    frh:ControlsPage ,
+                    frh:ChatInterface ,
+                    frh:DatabasePage ,
+                    frh:FundLinkPage ,
+                    frh:DjangoAdmin .
+# Capability decomposition
+frh:NLQueryingCapability edgy:tree frh:FundResolutionCapability ,
+                                   frh:VisualizationCapability ,
+                                   frh:ExposureAnalyticsCapability .
+# Asset decomposition (app contains its modules)
+frh:DjangoApp edgy:tree frh:FundlinkModule ,
+                        frh:NL2SQLModule ,
+                        frh:ResolverModule ,
+                        frh:VizAgentModule ,
+                        frh:FundlinkRDFModule ,
+                        frh:SQLiteDB .
+
+### === edgy:link  (generic structural associations, not otherwise typed) ===
+frh:ConfigIni    edgy:link frh:LLMGateway , frh:FundLinkDW .   # config references endpoints/creds
+frh:GitHubRepo   edgy:link frh:DjangoApp .                     # repo hosts the app
+frh:SchemaPrompt edgy:link frh:DShareClassView , frh:PositionsTable .  # prompt documents these objects
+frh:FundCatalog  edgy:link frh:DShareClassView .              # catalogue derived from the view
+frh:FundManager  edgy:link frh:RiskTeam .                     # manager reports into risk oversight
+frh:DjangoApp    edgy:link frh:FundLinkDW , frh:LLMGateway .  # app integrates external services
+
+### === edgy:alignsWithGist  (Element → Gist concept) ======================
+frh:ReportProductionCapability edgy:alignsWithGist gist:Function .
+frh:ValidationWorkflow         edgy:alignsWithGist gist:Task .
+frh:GeneratedFundReport        edgy:alignsWithGist gist:Content .
+
+### === edgy:groundedInBFO  (Element → BFO category) =======================
+frh:NL2SQLPipeline       edgy:groundedInBFO bfo:BFO_0000015 .   # process
+frh:ValidationWorkflow   edgy:groundedInBFO bfo:BFO_0000015 .   # process
+frh:FundLinkDW           edgy:groundedInBFO bfo:BFO_0000040 .   # material entity
+frh:AccurateValidatedReporting edgy:groundedInBFO bfo:BFO_0000017 .  # realizable entity
+
+# ── end of instance graph ─────────────────────────────────────

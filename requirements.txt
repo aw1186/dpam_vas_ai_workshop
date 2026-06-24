@@ -4,3 +4,4 @@ pandas>=2.0
 openpyxl>=3.1
 rdflib>=7.0
 openai>=1.0
+rapidfuzz>=3.0
