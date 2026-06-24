@@ -13,6 +13,9 @@ __pycache__/
 env/
 venv/
 
+# Secrets / credentials
+config.ini
+
 # Django
 *.log
 local_settings.py

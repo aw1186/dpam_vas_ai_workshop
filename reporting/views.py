@@ -275,6 +275,20 @@ def controls_view(request):
             "flagged": [{"rid": c.report_id, "fund": c.report.fund, "status": c.status}
                         for c in flagged],
         })
+
+    # Include RDF/SPARQL RM rules (control_id matches the rule id).
+    from .fundlink_rdf import RULE_DEFS
+    for d in RULE_DEFS:
+        flagged = (Control.objects
+                   .filter(control_id=d["id"], status__in=["fail", "warn"])
+                   .select_related("report")
+                   .order_by("-status")[:4])
+        catalogue.append({
+            "name": f"{d['name']} (RDF)", "desc": d["descr"],
+            "flagged": [{"rid": c.report_id, "fund": c.report.fund, "status": c.status}
+                        for c in flagged],
+        })
+
     return render(request, "controls.html", {
         "active": "controls", "cards": cards, "catalogue": catalogue,
         "pending": _nav_pending(),
@@ -450,3 +464,132 @@ def database_reset(request):
     call_command("seed", reset=True)
     messages.success(request, "Demo data reset to seed state.")
     return redirect("database_table", table="reports")
+
+
+# --------------------------------------------------------------------------
+# FundLink (Oracle data warehouse)
+# --------------------------------------------------------------------------
+def fundlink_view(request):
+    from . import fundlink
+
+    status_ok, status_msg = fundlink.test_connection()
+    columns, rows, error, sql = None, None, None, ""
+    sparql, sparql_cols, sparql_rows, sparql_error = "", None, None, None
+    rule_results = None
+    question, nl_sql, nl_cols, nl_rows, nl_error = "", "", None, None, None
+
+    if request.method == "POST":
+        action = request.POST.get("action", "sql")
+
+        if action == "sql":
+            sql = request.POST.get("sql", "").strip()
+            if sql:
+                try:
+                    columns, raw_rows = fundlink.run_query(sql)
+                    rows = [[("" if v is None else v) for v in r] for r in raw_rows]
+                except Exception as exc:  # surface DB/validation errors in the UI
+                    error = str(exc)
+
+        elif action == "ask":
+            question = request.POST.get("question", "").strip()
+            if question:
+                from . import nl2sql
+                result = nl2sql.ask(question)
+                nl_sql = result["sql"]
+                nl_cols = result["columns"]
+                nl_rows = result["rows"]
+                nl_error = result["error"]
+
+        elif action == "sparql":
+            sparql = request.POST.get("sparql", "").strip()
+            if sparql:
+                try:
+                    from . import fundlink_rdf
+                    graph = fundlink_rdf.load(limit=500, active_only=True)
+                    sparql_cols, sparql_rows = fundlink_rdf.run_sparql(graph, sparql)
+                except Exception as exc:
+                    sparql_error = str(exc)
+
+        elif action == "run_rules":
+            try:
+                rule_results = _run_rdf_rules()
+                applied = sum(r["applied"] for r in rule_results)
+                messages.success(
+                    request,
+                    f"RM rules evaluated. {applied} control(s) recorded against reports.",
+                )
+            except Exception as exc:
+                sparql_error = str(exc)
+
+    return render(request, "fundlink.html", {
+        "active": "fundlink",
+        "status_ok": status_ok,
+        "status_msg": status_msg,
+        "columns": columns,
+        "rows": rows,
+        "error": error,
+        "sql": sql,
+        "question": question,
+        "nl_sql": nl_sql,
+        "nl_cols": nl_cols,
+        "nl_rows": nl_rows,
+        "nl_error": nl_error,
+        "sparql": sparql,
+        "sparql_cols": sparql_cols,
+        "sparql_rows": sparql_rows,
+        "sparql_error": sparql_error,
+        "rule_results": rule_results,
+        "pending": _nav_pending(),
+    })
+
+
+def _run_rdf_rules():
+    """Build the RDF graph, run RM rules, and record results as Controls.
+
+    For each rule violation whose ISIN matches an existing Report, a Control
+    row is created/updated. Returns a per-rule summary for the UI.
+    """
+    from . import fundlink_rdf
+
+    graph = fundlink_rdf.load(limit=500, active_only=True)
+    results = fundlink_rdf.run_rules(graph)
+
+    # Map ISIN -> reports so we can attach controls.
+    summary = []
+    for rule in results:
+        applied = 0
+        matched_reports = Report.objects.filter(isin__in=rule["violations"])
+        for report in matched_reports:
+            Control.objects.update_or_create(
+                report=report,
+                control_id=rule["id"],
+                defaults={
+                    "name": rule["name"],
+                    "descr": rule["descr"],
+                    "status": rule["severity"],
+                },
+            )
+            applied += 1
+        # Reports that satisfy the rule -> mark pass.
+        ok_reports = Report.objects.exclude(isin__in=rule["violations"])
+        for report in ok_reports:
+            Control.objects.update_or_create(
+                report=report,
+                control_id=rule["id"],
+                defaults={
+                    "name": rule["name"],
+                    "descr": rule["descr"],
+                    "status": "pass",
+                },
+            )
+        summary.append({
+            "id": rule["id"],
+            "name": rule["name"],
+            "descr": rule["descr"],
+            "severity": rule["severity"],
+            "violation_count": len(rule["violations"]),
+            "applied": applied,
+        })
+    return summary
+
+

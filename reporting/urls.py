@@ -33,4 +33,7 @@ urlpatterns = [
     path("database/<str:table>/new/", views.database_form, name="database_create"),
     path("database/<str:table>/<path:pk>/edit/", views.database_form, name="database_edit"),
     path("database/<str:table>/<path:pk>/delete/", views.database_delete, name="database_delete"),
+
+    # FundLink (Oracle data warehouse)
+    path("fundlink/", views.fundlink_view, name="fundlink"),
 ]

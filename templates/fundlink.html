@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}FundLink · Fund Reporting Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>FundLink</h1>
+    <p>Query the FundLink Oracle data warehouse (read-only).</p>
+  </div>
+  <div>
+    {% if status_ok %}
+      <span class="badge" style="background:var(--green-soft);color:var(--green);">● Connected</span>
+    {% else %}
+      <span class="badge" style="background:var(--red-soft);color:var(--red);">● Offline</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section-card">
+  <h3>Connection status</h3>
+  <p class="muted">{{ status_msg }}</p>
+</div>
+
+<div class="section-card">
+  <h3>Ask in natural language</h3>
+  <p class="muted">
+    Type a question in plain English. It is translated to Oracle SQL by
+    <code>gpt-4.1-mini</code>, and the generated SQL is shown before the results.
+    You can ask about share classes, funds, holdings and <strong>exposure</strong>
+    (e.g. <em>"What is the exposure of share class LU1874836205 to Brazil?"</em>).
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="ask">
+    <input type="text" name="question" value="{{ question }}" autocomplete="off"
+           style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;"
+           placeholder="e.g. Show the country exposure of share class LU1874836205">
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary btn-sm" type="submit">Ask</button>
+      <span class="muted" style="margin-left:8px;">Read-only · the model can only generate SELECT statements.</span>
+    </div>
+  </form>
+
+  {% if nl_sql %}
+    <div style="margin-top:14px;">
+      <div class="muted" style="font-size:12px;margin-bottom:4px;">Generated SQL</div>
+      <pre style="background:#0f2742;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12.5px;"><code>{{ nl_sql }}</code></pre>
+    </div>
+  {% endif %}
+
+  {% if nl_error %}
+    <div class="flash error" style="margin-top:14px;">{{ nl_error }}</div>
+  {% endif %}
+
+  {% if nl_cols %}
+  <div class="table-wrap" style="margin-top:8px;">
+    <table class="db-table">
+      <thead>
+        <tr>{% for c in nl_cols %}<th>{{ c }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in nl_rows %}
+          <tr>{% for v in row %}<td title="{{ v }}">{{ v }}</td>{% endfor %}</tr>
+        {% empty %}
+          <tr><td colspan="{{ nl_cols|length }}"><div class="empty">Query returned no rows.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="section-card">
+  <h3>Run a query</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="sql">
+    <textarea name="sql" rows="4" style="width:100%;font-family:monospace;padding:10px;border:1px solid #cbd5e1;border-radius:8px;"
+              placeholder="SELECT * FROM ...">{{ sql }}</textarea>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary btn-sm" type="submit">Run query</button>
+      <span class="muted" style="margin-left:8px;">Only SELECT statements are allowed · max 200 rows.</span>
+    </div>
+  </form>
+
+  {% if error %}
+    <div class="flash error" style="margin-top:14px;">{{ error }}</div>
+  {% endif %}
+
+  {% if columns %}
+  <div class="table-wrap" style="margin-top:16px;">
+    <table class="db-table">
+      <thead>
+        <tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>{% for v in row %}<td title="{{ v }}">{{ v }}</td>{% endfor %}</tr>
+        {% empty %}
+          <tr><td colspan="{{ columns|length }}"><div class="empty">Query returned no rows.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="section-card">
+  <h3>SPARQL (RDF) query</h3>
+  <p class="muted">
+    Relational rows from <code>EDW_PL.D_SHARE_CLASS</code> are mapped into an RDF
+    graph (vocabulary prefix <code>fl:</code>) and queried with SPARQL.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="sparql">
+    <textarea name="sparql" rows="6" style="width:100%;font-family:monospace;padding:10px;border:1px solid #cbd5e1;border-radius:8px;"
+              placeholder="PREFIX fl: <https://fundlink.dp/ont#>&#10;SELECT ?isin ?name WHERE { ?sc a fl:ShareClass ; fl:isin ?isin . OPTIONAL { ?sc fl:name ?name } } LIMIT 20">{{ sparql }}</textarea>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary btn-sm" type="submit">Run SPARQL</button>
+      <span class="muted" style="margin-left:8px;">SELECT or ASK over the in-memory RDF graph (active share classes).</span>
+    </div>
+  </form>
+
+  {% if sparql_error %}
+    <div class="flash error" style="margin-top:14px;">{{ sparql_error }}</div>
+  {% endif %}
+
+  {% if sparql_cols %}
+  <div class="table-wrap" style="margin-top:16px;">
+    <table class="db-table">
+      <thead>
+        <tr>{% for c in sparql_cols %}<th>{{ c }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in sparql_rows %}
+          <tr>{% for v in row %}<td title="{{ v }}">{{ v }}</td>{% endfor %}</tr>
+        {% empty %}
+          <tr><td colspan="{{ sparql_cols|length }}"><div class="empty">Query returned no rows.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="section-card">
+  <h3>RM rules (SPARQL → Controls)</h3>
+  <p class="muted">
+    Evaluate the FundLink data-quality rules and record the outcome as
+    Controls on any report whose ISIN matches. Results appear on the
+    <a href="{% url 'controls' %}">Checks &amp; Controls</a> page.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="run_rules">
+    <button class="btn btn-green btn-sm" type="submit">Run RM rules</button>
+  </form>
+
+  {% if rule_results %}
+  <div class="table-wrap" style="margin-top:16px;">
+    <table class="db-table">
+      <thead>
+        <tr><th>Rule</th><th>Description</th><th>Severity</th><th>Violations</th><th>Controls written</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rule_results %}
+          <tr>
+            <td>{{ r.name }}</td>
+            <td>{{ r.descr }}</td>
+            <td>{{ r.severity }}</td>
+            <td>{{ r.violation_count }}</td>
+            <td>{{ r.applied }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
